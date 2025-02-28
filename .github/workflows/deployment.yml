@@ -1,0 +1,67 @@
+name: Deploy Portfolio
+
+on:
+  workflow_dispatch:  # Allows manual execution from GitHub Actions
+  push:
+    branches: [ main ]  # Automatically trigger when there's a push to the main branch
+
+env:
+  DOCKER_USERNAME: mohni7277
+  DOCKER_IMAGE: mohni7277/portfolio
+  CONTAINER_NAME: portfolio-container
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - 
+        name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures the full history is checked out (for tags/branches)
+
+      - 
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3  # Setup Buildx for advanced features
+
+      - 
+        name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}  # Ensure Docker token is stored in secrets
+
+      - 
+        name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .  # The build context, typically the current directory
+          push: true
+          tags: |
+            ${{ env.DOCKER_IMAGE }}:latest  # Tag with latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}  # Tag with the commit SHA for uniqueness
+          cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache  # Use cache to speed up build
+          cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max  # Store build cache
+
+      - 
+        name: Workflow Summary
+        run: |
+          echo "✅ Build completed"
+          echo "🐳 Docker image built and pushed successfully"
+          echo "📌 Image tags:"
+          echo "   - ${{ env.DOCKER_IMAGE }}:latest"
+          echo "   - ${{ env.DOCKER_IMAGE }}:${{ github.sha }}"
+
+  # Uncomment and configure this section if you're deploying to a remote server
+  # deploy:
+  #   needs: build-and-push
+  #   runs-on: self-hosted  # This would need to be set up on your deployment server
+  #   steps:
+  #     - 
+  #       name: Deploy Container
+  #       run: |
+  #         docker pull ${{ env.DOCKER_IMAGE }}:latest  # Pull the latest image
+  #         docker stop ${{ env.CONTAINER_NAME }} || true  # Stop the old container if it exists
+  #         docker rm ${{ env.CONTAINER_NAME }} || true  # Remove the old container
+  #         docker run -d -p 8083:80 --name ${{ env.CONTAINER_NAME }} ${{ env.DOCKER_IMAGE }}:latest  # Start the new container
+
