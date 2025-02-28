@@ -32,16 +32,18 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}  # Ensure Docker token is stored in secrets
 
       - 
+        
         name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .  # The build context, typically the current directory
           push: true
           tags: |
-            ${{ env.DOCKER_IMAGE }}:latest  # Tag with latest
-            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}  # Tag with the commit SHA for uniqueness
+            ${{ env.DOCKER_IMAGE }}:latest
+            ${{ env.DOCKER_IMAGE }}:${{ github.sha }}
           cache-from: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache  # Use cache to speed up build
           cache-to: type=registry,ref=${{ env.DOCKER_IMAGE }}:buildcache,mode=max  # Store build cache
+          
 
       - 
         name: Workflow Summary
